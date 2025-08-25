@@ -1,4 +1,13 @@
+# Ignorar arquivos de ambiente
 .env
 db/.env
+
+# Ignorar caches do Python
 __pycache__/
+*/__pycache__/
+
+# Ignorar ambiente virtual
 .venv/
+
+# Ignorar arquivos de scripts/SQL se você quiser
+Scripts BD/
