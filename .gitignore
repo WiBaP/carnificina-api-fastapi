@@ -1,13 +1,48 @@
-# Ignorar arquivos de ambiente
+# --------------------------
+# Arquivos de ambiente
+# --------------------------
 .env
 db/.env
 
-# Ignorar caches do Python
+# --------------------------
+# Cache do Python
+# --------------------------
 __pycache__/
 */__pycache__/
 
-# Ignorar ambiente virtual
+# --------------------------
+# Ambiente virtual
+# --------------------------
 .venv/
+venv/
+ENV/
+env/
 
-# Ignorar arquivos de scripts/SQL se você quiser
+# --------------------------
+# Logs e SQLite
+# --------------------------
+*.log
+*.sqlite3
+
+# --------------------------
+# Arquivos temporários
+# --------------------------
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*.DS_Store
+*.egg-info/
+*.egg
+
+# --------------------------
+# Scripts
+# --------------------------
 Scripts BD/
+
+# --------------------------
+# IDE / Editor
+# --------------------------
+.vscode/
+.idea/
