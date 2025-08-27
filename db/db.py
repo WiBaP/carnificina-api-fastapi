@@ -23,6 +23,7 @@ PASSWORD = os.environ.get("PASSWORD")
 HOST = os.environ.get("HOST")
 PORT = os.environ.get("PORT", "5432")  # padrão 5432 se não definido
 DBNAME = os.environ.get("DBNAME")
+sslmode="require"
 
 logger.info(f"Tentando conectar ao banco com USER={USER}, HOST={HOST}, PORT={PORT}, DBNAME={DBNAME}")
 
