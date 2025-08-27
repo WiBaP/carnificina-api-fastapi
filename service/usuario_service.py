@@ -1,6 +1,5 @@
-from db.db import engine
+from db.db import supabase
 import bcrypt
-from sqlalchemy import text
 
 # lista de classes válidas
 CLASSES_VALIDAS = {
@@ -17,82 +16,63 @@ CLASSES_VALIDAS = {
 }
 
 def get_usuario_por_nick(nick: str):
-    with engine.connect() as conn:
-        query = text("SELECT * FROM registro WHERE nick = :nick")
-        row = conn.execute(query, {"nick": nick}).mappings().first()
-        return row  # já é dict ou None
+    response = supabase.table("registro").select("*").eq("nick", nick).execute()
+    if response.data:
+        return response.data[0]
+    return None
 
 def listar_usuarios():
-    with engine.connect() as conn:
-        query = text("SELECT * FROM registro")
-        rows = conn.execute(query).mappings().all()
-        return rows  # já retorna lista de dicionários
+    response = supabase.table("registro").select("*").execute()
+    return response.data
 
 def cadastrar_usuario(nome, telefone, email, nick, classe, nivel, senha):
-    with engine.connect() as conn:
-        # 1. Validar senha
-        if len(senha) < 4:
-            return {"erro": "A senha deve ter no mínimo 4 caracteres."}
+    # 1. Validar senha
+    if len(senha) < 4:
+        return {"erro": "A senha deve ter no mínimo 4 caracteres."}
 
-        # 2. Validar classe
-        if classe.lower() not in CLASSES_VALIDAS:
-            return {"erro": f"Classe inválida. As permitidas são: {', '.join(CLASSES_VALIDAS)}"}
+    # 2. Validar classe
+    if classe.lower() not in CLASSES_VALIDAS:
+        return {"erro": f"Classe inválida. As permitidas são: {', '.join(CLASSES_VALIDAS)}"}
 
-        # 3. Verificar se email, telefone ou nick já existem
-        for field, value in [("email", email), ("telefone", telefone), ("nick", nick)]:
-            query = text(f"SELECT 1 FROM registro WHERE {field} = :value")
-            if conn.execute(query, {"value": value}).fetchone():
-                return {"erro": f"Já existe um usuário com este {field}."}
+    # 3. Verificar se email, telefone ou nick já existem
+    for field, value in [("email", email), ("telefone", telefone), ("nick", nick)]:
+        existing = supabase.table("registro").select("id").eq(field, value).execute()
+        if existing.data:
+            return {"erro": f"Já existe um usuário com este {field}."}
 
-        # 4. Gerar hash da senha
-        senha_hash = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    # 4. Gerar hash da senha
+    senha_hash = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-        # 5. Inserir no banco
-        query = text("""
-            INSERT INTO registro (nome, telefone, email, nick, classe, nivel, senha)
-            VALUES (:nome, :telefone, :email, :nick, :classe, :nivel, :senha)
-        """)
-        conn.execute(query, {
-            "nome": nome,
-            "telefone": telefone,
-            "email": email,
-            "nick": nick,
-            "classe": classe.lower(),
-            "nivel": nivel,
-            "senha": senha_hash
-        })
-        conn.commit()
+    # 5. Inserir no banco
+    supabase.table("registro").insert({
+        "nome": nome,
+        "telefone": telefone,
+        "email": email,
+        "nick": nick,
+        "classe": classe.lower(),
+        "nivel": nivel,
+        "senha": senha_hash
+    }).execute()
 
     return {"mensagem": "Usuário cadastrado com sucesso"}
 
 def atualizar_usuario(id, nome, telefone, email, nick, classe, nivel, senha, adm):
-    with engine.connect() as conn:
-        senha_hash = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        query = text("""
-            UPDATE registro 
-            SET nome = :nome, telefone = :telefone, email = :email, nick = :nick,
-                classe = :classe, nivel = :nivel, senha = :senha, adm = :adm
-            WHERE id = :id
-        """)
-        conn.execute(query, {
-            "nome": nome,
-            "telefone": telefone,
-            "email": email,
-            "nick": nick,
-            "classe": classe.lower(),
-            "nivel": nivel,
-            "senha": senha_hash,
-            "adm": adm,
-            "id": id
-        })
-        conn.commit()
+    senha_hash = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    supabase.table("registro").update({
+        "nome": nome,
+        "telefone": telefone,
+        "email": email,
+        "nick": nick,
+        "classe": classe.lower(),
+        "nivel": nivel,
+        "senha": senha_hash,
+        "adm": adm
+    }).eq("id", id).execute()
+
     return {"mensagem": "Usuário atualizado com sucesso"}
 
 def deletar_usuario(id):
-    with engine.connect() as conn:
-        query = text("DELETE FROM registro WHERE id = :id")
-        conn.execute(query, {"id": id})
-        conn.commit()
+    supabase.table("registro").delete().eq("id", id).execute()
     return {"mensagem": "Usuário deletado com sucesso"}
 
 def logar_usuario(nick, senha):
