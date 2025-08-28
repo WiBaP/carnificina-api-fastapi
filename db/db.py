@@ -17,25 +17,13 @@ if env_path.exists():
 else:
     logger.info(".env não encontrado, usando variáveis de ambiente do sistema")
 
-# --- Ler variáveis de ambiente ---
-USER = os.environ.get("USER")
-PASSWORD = os.environ.get("PASSWORD")
-HOST = os.environ.get("HOST")
-PORT = os.environ.get("PORT", "5432")  # padrão 5432 se não definido
-DBNAME = os.environ.get("DBNAME")
-sslmode="require"
+# --- Ler a variável DATABASE_URL ---
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-logger.info(f"Tentando conectar ao banco com USER={USER}, HOST={HOST}, PORT={PORT}, DBNAME={DBNAME}")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL não encontrada nas variáveis de ambiente!")
 
-# Converter PORT para inteiro
-try:
-    PORT = int(PORT)
-except (TypeError, ValueError):
-    logger.error(f"PORT inválida: {PORT}")
-    raise
-
-# --- Criar URL de conexão ---
-DATABASE_URL = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DBNAME}?sslmode=require"
+logger.info(f"Tentando conectar usando DATABASE_URL={DATABASE_URL}")
 
 # --- Criar engine SQLAlchemy ---
 engine = create_engine(DATABASE_URL)
@@ -49,4 +37,4 @@ try:
         logger.info("Conexão com o banco bem-sucedida!")
 except Exception as e:
     logger.error("Erro na conexão com o banco:", exc_info=True)
-    raise  # mantém o erro visível
+    raise
