@@ -67,26 +67,38 @@ def cadastrar_usuario(nome, telefone, email, nick, classe, nivel, senha):
 
 def atualizar_usuario(id, nome, telefone, email, nick, classe, nivel, senha, adm):
     with engine.connect() as conn:
-        senha_hash = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        query = text("""
+        if senha:  # se senha não for None ou vazia, gera o hash
+            senha_hash = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            senha_sql = ":senha"
+        else:  # se for None, mantém a senha atual
+            senha_sql = "senha"  # coluna permanece igual, não altera
+
+        query = text(f"""
             UPDATE registro 
             SET nome = :nome, telefone = :telefone, email = :email, nick = :nick,
-                classe = :classe, nivel = :nivel, senha = :senha, adm = :adm
+                classe = :classe, nivel = :nivel, senha = {senha_sql}, adm = :adm
             WHERE id = :id
         """)
-        conn.execute(query, {
+
+        params = {
             "nome": nome,
             "telefone": telefone,
             "email": email,
             "nick": nick,
             "classe": classe.lower(),
             "nivel": nivel,
-            "senha": senha_hash,
             "adm": adm,
             "id": id
-        })
+        }
+
+        if senha:  # só adiciona senha se for alterada
+            params["senha"] = senha_hash
+
+        conn.execute(query, params)
         conn.commit()
+
     return {"mensagem": "Usuário atualizado com sucesso"}
+
 
 def deletar_usuario(id):
     with engine.connect() as conn:
