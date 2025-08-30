@@ -18,8 +18,8 @@ CLASSES_VALIDAS = {
 
 def get_usuario_por_nick(nick: str):
     with engine.connect() as conn:
-        query = text("SELECT * FROM registro WHERE nick = :nick")
-        row = conn.execute(query, {"nick": nick}).mappings().first()
+        query = text("SELECT * FROM registro WHERE LOWER(nick) = :nick")
+        row = conn.execute(query, {"nick": nick.lower()}).mappings().first()
         return row
 
 def listar_usuarios():
@@ -65,17 +65,12 @@ def cadastrar_usuario(nome, telefone, email, nick, classe, nivel, senha):
 
     return {"mensagem": "Usuário cadastrado com sucesso"}
 
-def atualizar_usuario(id, nome, telefone, email, nick, classe, nivel, senha, adm):
+def atualizar_usuario(id, nome, telefone, email, nick, classe, nivel, adm):
+    """
+    Atualiza os dados do usuário, mas NÃO altera a senha.
+    """
     with engine.connect() as conn:
-        # Decide se altera a senha
-        if senha and len(senha) >= 4:
-            senha_hash = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            senha_sql = ":senha"
-        else:
-            senha_hash = None
-            senha_sql = "senha"  # mantém a coluna sem alteração
-
-        query = text(f"""
+        query = text("""
             UPDATE registro 
             SET nome = :nome,
                 telefone = :telefone,
@@ -83,7 +78,6 @@ def atualizar_usuario(id, nome, telefone, email, nick, classe, nivel, senha, adm
                 nick = :nick,
                 classe = :classe,
                 nivel = :nivel,
-                senha = {senha_sql},
                 adm = :adm
             WHERE id = :id
         """)
@@ -99,14 +93,10 @@ def atualizar_usuario(id, nome, telefone, email, nick, classe, nivel, senha, adm
             "id": id
         }
 
-        if senha_hash:  # só adiciona senha se for válida
-            params["senha"] = senha_hash
-
         conn.execute(query, params)
         conn.commit()
 
     return {"mensagem": "Usuário atualizado com sucesso"}
-
 
 
 def deletar_usuario(id):
@@ -116,9 +106,21 @@ def deletar_usuario(id):
         conn.commit()
     return {"mensagem": "Usuário deletado com sucesso"}
 
-def logar_usuario(nick, senha):
+def logar_usuario(nick: str, senha: str) -> bool:
     usuario = get_usuario_por_nick(nick)
     if not usuario:
         return False
     senha_hash = usuario["senha"]
-    return bcrypt.checkpw(senha.encode('utf-8'), senha_hash.encode('utf-8'))
+    return bcrypt.checkpw(senha.encode("utf-8"), senha_hash.encode("utf-8"))
+
+def alterar_senha(id, senha):
+    
+    senha_hash = bcrypt.hashpw(senha.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    
+    with engine.connect() as conn:
+        query = text("UPDATE registro SET senha = :senha WHERE id = :id")
+        conn.execute(query, {"senha": senha_hash, "id": id})
+        conn.commit()
+    
+    return {"mensagem": "Senha alterada com sucesso"}
+

@@ -1,9 +1,10 @@
-from service.usuario_service import listar_usuarios, cadastrar_usuario, atualizar_usuario, deletar_usuario, logar_usuario, get_usuario_por_nick
+from service.usuario_service import listar_usuarios, cadastrar_usuario, atualizar_usuario, deletar_usuario, logar_usuario, get_usuario_por_nick, alterar_senha
 from app import app
 from model.usuario import Usuario
 from model.usuario_id import UsuarioID
 from model.usuario_login import UsuarioLogin
 from fastapi import HTTPException
+from model.usuario_pw import UsuarioPW
 
 @app.get("/usuario/{nick}")
 def listar_por_nick(nick: str):
@@ -38,13 +39,17 @@ def atualizar(usuario: Usuario):
         usuario.nick,
         usuario.classe,
         usuario.nivel,
-        usuario.senha,
         usuario.adm
     )
 
 @app.delete("/deletar-usuario")
 def deletar(usuario: UsuarioID):
     return deletar_usuario(usuario.id)
+
+@app.post("/alterar-senha")
+def attsenha(usuario: UsuarioPW):
+    return alterar_senha(usuario.id, usuario.senha)
+
     
 @app.post("/logar-usuario")
 def logar(usuario: UsuarioLogin):
